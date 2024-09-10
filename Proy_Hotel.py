@@ -239,18 +239,29 @@ def create_client_interface(root):
 
     # Función para validar los datos del cliente
     def validate_data(name, address, phone, email):
+        global editing_mode
         client_registered = search_client_by_name(name)
-        if client_registered:
-            if client_registered[0]['email'] == email or client_registered[0]['phoneNumber'] == phone:
-                return "Los datos del cliente ya han sido registrados para otro cliente."
-        if len(name) > 50 or name == "":
-            return "El nombre no puede exceder los 50 caracteres ni estar vacio."
-        if not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+ # \d+$', address):
-            return "La dirección debe estar conformada por: 'nombre de calle # numero de calle'."
-        if not re.match(r'^\+\d{12}$', phone):
-            return "El teléfono debe ser númerico, tener 13 caracteres e iniciar con '+'."
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            return "El correo electrónico no tiene un formato válido (variable@example.com)."
+        if(editing_mode):
+            if len(name) > 50 or name == "":
+                return "El nombre no puede exceder los 50 caracteres ni estar vacio."
+            if not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+ # \d+$', address):
+                return "La dirección debe estar conformada por: 'nombre de calle # numero de calle'."
+            if not re.match(r'^\+\d{12}$', phone):
+                return "El teléfono debe ser númerico, tener 13 caracteres e iniciar con '+'."
+            if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+                return "El correo electrónico no tiene un formato válido (variable@example.com)."
+        else:
+            if client_registered:
+                if client_registered[0]['email'] == email or client_registered[0]['phoneNumber'] == phone:
+                    return "Los datos del cliente ya han sido registrados para otro cliente."
+            if len(name) > 50 or name == "":
+                return "El nombre no puede exceder los 50 caracteres ni estar vacio."
+            if not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+ # \d+$', address):
+                return "La dirección debe estar conformada por: 'nombre de calle # numero de calle'."
+            if not re.match(r'^\+\d{12}$', phone):
+                return "El teléfono debe ser númerico, tener 13 caracteres e iniciar con '+'."
+            if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+                return "El correo electrónico no tiene un formato válido (variable@example.com)."
         return None
     
      # Función para el botón "Nuevo"
