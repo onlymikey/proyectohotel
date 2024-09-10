@@ -239,10 +239,16 @@ def create_client_interface(root):
 
     # Función para validar los datos del cliente
     def validate_data(name, address, phone, email):
+        client_registered = search_client_by_name(name)
+        if client_registered:
+            if client_registered[0]['email'] == email or client_registered[0]['phoneNumber'] == phone:
+                return "Los datos del cliente ya han sido registrados para otro cliente."
         if len(name) > 50 or name == "":
             return "El nombre no puede exceder los 50 caracteres ni estar vacio."
-        if len(phone) != 13 or not phone.startswith('+'):
-            return "El teléfono debe tener 13 caracteres e iniciar con '+'."
+        if not re.match(r'^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+ # \d+$', address):
+            return "La dirección debe estar conformada por: 'nombre de calle # numero de calle'."
+        if not re.match(r'^\+\d{12}$', phone):
+            return "El teléfono debe ser númerico, tener 13 caracteres e iniciar con '+'."
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
             return "El correo electrónico no tiene un formato válido (variable@example.com)."
         return None
@@ -631,6 +637,7 @@ def create_habitacion_interface(root):
     habitacion_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
 
     # Variables para los campos de texto
+    room_number_var_search = tk.StringVar()
     room_number_var = tk.StringVar()
     room_id_var = tk.StringVar()
     estado_var = tk.StringVar()
@@ -643,16 +650,18 @@ def create_habitacion_interface(root):
                 raise ValueError
             return room_number
         except ValueError:
-            messagebox.showerror("Error", "El número de habitación debe ser un entero positivo mayor que cero")
+            messagebox.showerror("Error", "El número de habitación debe ser mayor a cero, ejem.[1,2,3...]")
             return None
 
     # Función para buscar habitación por número
     def search_room_by_number():
-        room_number = validate_room_number(room_number_var.get())
+        room_number = validate_room_number(room_number_var_search.get())
         if room_number is not None:
             room = search_room_by_roomNumber(room_number)
             if room:
+                room_number_var_search.set('')
                 room_id_var.set(room['Id'])
+                room_number_var.set(room['roomNumber'])
                 estado_var.set(room['state'])
             else:
                 messagebox.showinfo("No encontrado", "Habitación no encontrada")
@@ -684,13 +693,14 @@ def create_habitacion_interface(root):
 
     # Función para limpiar campos
     def clear_fields():
+        room_number_var_search.set('')
         room_number_var.set('')
         room_id_var.set('')
         estado_var.set('Libre')
 
     # Primera fila
     ttk.Label(habitacion_frame, text="Ingrese Número de Habitación:").grid(row=0, column=0, sticky="e")
-    ttk.Entry(habitacion_frame, textvariable=room_number_var).grid(row=0, column=1, padx=5)
+    ttk.Entry(habitacion_frame, textvariable=room_number_var_search).grid(row=0, column=1, padx=5)
     ttk.Button(habitacion_frame, text="Buscar", command=search_room_by_number).grid(row=0, column=2, padx=5)
 
     # Segunda fila
