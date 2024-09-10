@@ -1,5 +1,6 @@
 import tkinter as tk
 import re
+from datetime import datetime
 from tkinter import ttk
 from tkinter import messagebox
 
@@ -129,13 +130,13 @@ def update_room(roomId, roomNumber=None, state=None):
 def createReservation(clientId, roomId, reservationDate, reservationHour, leaveDate, price):
     global reservationId
     newReservation = {
-    'Id' : reservationId,
-    'clientId' : clientId,
-    'roomId' : roomId,
-    'reservationDate' : reservationDate,
-    'reservationHour' : reservationHour,
-    'leaveDate' : leaveDate,
-    'price' : price
+        'Id': reservationId,
+        'clientId': int(clientId),  # Asegurarse de que sea entero
+        'roomId': roomId,
+        'reservationDate': reservationDate,
+        'reservationHour': reservationHour,
+        'leaveDate': leaveDate,
+        'price': price
     }
     reservations.append(newReservation)
     update_room(roomId, None, "Reservado")
@@ -149,19 +150,13 @@ def search_reservation(reservation_id):
     return None
 
 def search_reservation_by_client_name(client_name):
-    # Primero buscar el cliente(s) por nombre usando la función search_client_by_name
     matching_clients = search_client_by_name(client_name)
-
-    # Crear una lista para almacenar las reservas que coinciden con el cliente encontrado
     matching_reservations = []
-    
-    # Para cada cliente que coincida, buscar si tienen alguna reserva en reservations
+
     for client in matching_clients:
         for reservation in reservations:
-            if reservation['clientId'] == client['Id']:
+            if reservation['clientId'] == client['Id']:  # Ensure clientId is correctly matched
                 matching_reservations.append(reservation)
-
-    # Retornar las reservas que coinciden con el nombre del cliente
     return matching_reservations
 
 # Actualizar reserva
@@ -169,7 +164,7 @@ def update_reservation(reservation_id, clientId=None, roomId=None, reservationDa
     reservation = search_reservation(reservation_id)
     if reservation:
         if clientId is not None:
-            reservation['clientId'] = clientId
+            reservation['clientId'] = int(clientId)  # Ensure clientId is an integer
         if roomId is not None:
             reservation['roomId'] = roomId
         if reservationDate is not None:
@@ -187,13 +182,12 @@ def update_reservation(reservation_id, clientId=None, roomId=None, reservationDa
 def delete_reservation(reservation_id):
     global reservations
     reservation = search_reservation(reservation_id)
-    #poner en estado libre la habitacion al eliminar la reservacion
-    update_room(reservation['roomId'], None, "Libre")
-
-    reservations = [reservation for reservation in reservations if reservation['Id'] != reservation_id]
-
-
-
+    if reservation:
+        # Poner en estado libre la habitación al eliminar la reservación
+        update_room(reservation['roomId'], None, "Libre")
+        reservations = [res for res in reservations if res['Id'] != reservation_id]
+        return True
+    return False
 
 def create_client_interface(root):
     # Marco principal
@@ -415,17 +409,41 @@ def create_reservations_interface(root):
     
     # Función para buscar la reservación por el nombre del cliente
     def search_reservation():
+        global editing_mode
         client_name = client_name_var.get()
-        reservation = search_reservation_by_client_name(client_name)
-        
-        if reservation:
+        matching_reservations = search_reservation_by_client_name(client_name)
+
+        if matching_reservations:
+            # Asumimos que solo mostramos la primera reserva encontrada
+            reservation = matching_reservations[0]
             reservation_id_var.set(reservation['Id'])
             reservation_room_entry_var.set(reservation['roomId'])
             reservation_date_entry_var.set(reservation['reservationDate'])
-            reservation_status_combobox_var.set(reservation['status'])
+            reservation_status_combobox_var.set("Reservado")  # Asumiendo que el estado es "Reservado"
+            client_id_combobox_var.set(reservation['clientId'])
+            room_id_combobox_var.set(reservation['roomId'])
+            reservation_hour_entry.delete(0, tk.END)
+            reservation_hour_entry.insert(0, reservation['reservationHour'])
+            leave_date_entry.delete(0, tk.END)
+            leave_date_entry.insert(0, reservation['leaveDate'])
+            price_entry.delete(0, tk.END)
+            price_entry.insert(0, reservation['price'])
+            editing_mode = True
         else:
             clear_reservation_fields()
-            messagebox.showinfo("Reservación no encontrada", f"No se encontró una reservación para el cliente: {client_name}")
+            messagebox.showinfo("Reservación no encontrada",
+                                f"No se encontró una reservación para el cliente: {client_name}")
+            editing_mode = False
+
+    def on_edit_reservation():
+        global editing_mode
+        if not editing_mode:
+            messagebox.showwarning("Advertencia", "Primero busque una reservación para editar.")
+            return
+
+        disable_reservation_buttons()
+        reserve_button.config(state="normal")
+        cancel_button.config(state="normal")
 
     # Función para limpiar los campos de texto
     def clear_reservation_fields():
@@ -436,6 +454,9 @@ def create_reservations_interface(root):
         client_name_var.set("")
         client_id_combobox_var.set("")
         room_id_combobox_var.set("")
+        reservation_hour_entry.delete(0, tk.END)  # Limpiar campo de hora de reservación
+        leave_date_entry.delete(0, tk.END)  # Limpiar campo de fecha de salida
+        price_entry.delete(0, tk.END)  # Limpiar campo de costo
     
     # Función para deshabilitar botones y campos
     def disable_reservation_buttons():
@@ -468,24 +489,85 @@ def create_reservations_interface(root):
 
     # Función para crear una nueva reservación
     def create_reservation():
+        global editing_mode
         try:
+            if not client_id_combobox_var.get().isdigit():
+                raise ValueError("El ID del cliente debe ser un número entero.")
+            if not room_id_combobox_var.get().isdigit():
+                raise ValueError("El ID de la habitación debe ser un número entero.")
+
             client_id = client_id_combobox_var.get()
             room_id = room_id_combobox_var.get()
             reservation_date = reservation_date_entry_var.get()
-            reservation_hour = reservation_room_entry_var.get() 
-            leave_date = leave_date_entry.get()  
-            price = float(price_entry.get())  
+            reservation_hour = reservation_hour_entry.get()
+            leave_date = leave_date_entry.get()
+            price = price_entry.get()
 
-            # Crear la nueva reservación
-            createReservation(client_id, room_id, reservation_date, reservation_hour, leave_date, price)
-            
-            # Limpiar los campos y boxes
+            room = search_room_by_id(int(room_id))
+            if room and room['state'] == "Reservado" and not editing_mode:
+                messagebox.showerror("Error", "La habitación no está libre.")
+                return
+
+            error_message = validate_reservation(reservation_date, reservation_hour, leave_date, price)
+            if error_message:
+                messagebox.showerror("Error de validación", error_message)
+                return
+
+            if editing_mode:
+                reservation_id = int(reservation_id_var.get())
+                if update_reservation(reservation_id, client_id, room_id, reservation_date, reservation_hour,
+                                      leave_date, price):
+                    messagebox.showinfo("Éxito", "Reservación actualizada exitosamente")
+                else:
+                    messagebox.showerror("Error", "No se pudo actualizar la reservación")
+                editing_mode = False
+            else:
+                createReservation(client_id, room_id, reservation_date, reservation_hour, leave_date, price)
+                update_room(int(room_id), None, "Reservado")
+                messagebox.showinfo("Éxito", "Reservación guardada exitosamente")
+
             clear_reservation_fields()
-            messagebox.showinfo("Reservación creada", "La reservación se ha creado exitosamente.")
             enable_reservation_buttons()
-            
+
         except Exception as e:
             messagebox.showerror("Error", f"No se pudo crear la reservación: {e}")
+
+    def validate_reservation(reservation_date, reservation_hour, leave_date, price):
+        date_regex = r"^(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])/(\d{4})$"
+        hour_regex = r"([01][0-9]|2[0-3]):[0-5][0-9]"
+        price_regex = r"^\d+(\.\d{1,2})?$"
+
+
+        if not re.match(date_regex, reservation_date):
+            return "La fecha de reservación no tiene un formato válido (MM/DD/YYYY)."
+        if not re.match(date_regex, leave_date):
+            return "La fecha de salida no tiene un formato válido (MM/DD/YYYY)."
+        if not re.match(hour_regex, reservation_hour):
+            return "La hora no tiene un formato válido (HH:MM)."
+        if not re.match(price_regex, price):
+            return "El precio debe ser un número válido."
+
+        # Conversión de fechas para comparación
+        reservation_date_obj = datetime.strptime(reservation_date, "%m/%d/%Y")
+        leave_date_obj = datetime.strptime(leave_date, "%m/%d/%Y")
+
+        # Comprobación de que la fecha de salida es mayor a la de entrada
+        if leave_date_obj <= reservation_date_obj:
+            return "La fecha de salida debe ser mayor que la fecha de reservación."
+
+        return None
+
+    def cancel_reservation():
+        try:
+            reservation_id = int(reservation_id_var.get())
+            if delete_reservation(reservation_id):
+                messagebox.showinfo("Éxito", "Reservación cancelada exitosamente")
+                clear_reservation_fields()
+                enable_reservation_buttons()
+            else:
+                messagebox.showerror("Error", "No se pudo cancelar la reservación")
+        except ValueError:
+            messagebox.showerror("Error", "El ID de la reservación debe ser un número entero")
 
     # Primera fila
     ttk.Label(reservations_frame, text="Ingrese Reservación:").grid(row=0, column=0, sticky="e")
@@ -536,25 +618,17 @@ def create_reservations_interface(root):
     
     reserve_button = ttk.Button(button_frame, text="Reservar", command=create_reservation)
     reserve_button.grid(row=0, column=1, padx=5)
-    
-    cancel_button = ttk.Button(button_frame, text="Cancelar Reservación")
+
+    cancel_button = ttk.Button(button_frame, text="Cancelar Reservación", command=cancel_reservation)
     cancel_button.grid(row=0, column=2, padx=5)
     
-    edit_button = ttk.Button(button_frame, text="Editar")
+    edit_button = ttk.Button(button_frame, text="Editar", command=on_edit_reservation)
     edit_button.grid(row=0, column=3, padx=5)
 
     # Actualizar los ComboBox al crear la interfaz
     update_comboboxes()
 
     return reservations_frame
-
-
-
-
-
-
-
-
 
 
 def create_habitacion_interface(root):
