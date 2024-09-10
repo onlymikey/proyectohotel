@@ -141,9 +141,6 @@ def createReservation(clientId, roomId, reservationDate, reservationHour, leaveD
     reservations.append(newReservation)
     update_room(roomId, None, "Reservado")
     reservationId += 1
-    # Imprimir para debug
-    print(f"New reservation created: {newReservation}")
-    print(f"All reservations: {reservations}")
 
 # Buscar reserva por ID
 def search_reservation(reservation_id):
@@ -157,16 +154,9 @@ def search_reservation_by_client_name(client_name):
     matching_reservations = []
 
     for client in matching_clients:
-        print(f"Checking reservations for client ID: {client['Id']}")  # Debugging
         for reservation in reservations:
-            print(f"Checking reservation with clientId: {reservation['clientId']}")  # Debugging
             if reservation['clientId'] == client['Id']:  # Ensure clientId is correctly matched
                 matching_reservations.append(reservation)
-
-    # Debugging
-    print(f"Matching clients: {matching_clients}")
-    print(f"Matching reservations: {matching_reservations}")
-
     return matching_reservations
 
 # Actualizar reserva
@@ -541,11 +531,6 @@ def create_reservations_interface(root):
         hour_regex = r"([01][0-9]|2[0-3]):[0-5][0-9]"
         price_regex = r"^\d+(\.\d{1,2})?$"
 
-        # Mostrar los valores para depuración (DEBUG)
-        print(f"reservation_date: '{reservation_date}'")
-        print(f"reservation_hour: '{reservation_hour}'")
-        print(f"leave_date: '{leave_date}'")
-        print(f"price: '{price}'")
 
         if not re.match(date_regex, reservation_date):
             return "La fecha de reservación no tiene un formato válido (MM/DD/YYYY)."
@@ -565,35 +550,6 @@ def create_reservations_interface(root):
             return "La fecha de salida debe ser mayor que la fecha de reservación."
 
         return None
-
-    # Debug (Remover después)
-    def debug_print_client_name_by_id(client_id):
-        client = search_client(client_id)
-        if client:
-            print(f"Client ID: {client_id}, Client Name: {client['name']}")
-        else:
-            print(f"Client with ID {client_id} not found.")
-
-    # Debug (Remover después)
-    def test_search_client_by_name():
-        # Limpiar la lista de clientes antes de la prueba
-        global clients
-        clients = []
-
-        # Agregar clientes de prueba
-        createClient("Alice", "123 Main St", "alice@example.com", "+12345678901")
-        createClient("Bob", "456 Elm St", "bob@example.com", "+12345678902")
-        createClient("Charlie", "789 Oak St", "charlie@example.com", "+12345678903")
-        createClient("Alice", "321 Maple St", "alice2@example.com", "+12345678904")
-
-        # Probar búsqueda por nombre
-        result = search_client_by_name("Alice")
-        print("Resultados de búsqueda para 'Alice':")
-        for client in result:
-            print(client)
-
-    # Llamar a la función de prueba
-    test_search_client_by_name()
 
     def cancel_reservation():
         try:
@@ -662,11 +618,6 @@ def create_reservations_interface(root):
     
     edit_button = ttk.Button(button_frame, text="Editar", command=on_edit_reservation)
     edit_button.grid(row=0, column=3, padx=5)
-
-    # Debug (Remover después)
-    debug_button = ttk.Button(button_frame, text="Debug Client Name",
-                              command=lambda: debug_print_client_name_by_id(int(client_id_combobox_var.get())))
-    debug_button.grid(row=0, column=4, padx=5)
 
     # Actualizar los ComboBox al crear la interfaz
     update_comboboxes()
