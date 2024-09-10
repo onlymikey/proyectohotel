@@ -184,7 +184,7 @@ def delete_reservation(reservation_id):
     reservation = search_reservation(reservation_id)
     if reservation:
         # Poner en estado libre la habitación al eliminar la reservación
-        update_room(reservation['roomId'], None, "Libre")
+        update_room(int(reservation['roomId']), None, "Libre")
         reservations = [res for res in reservations if res['Id'] != reservation_id]
         return True
     return False
@@ -464,6 +464,10 @@ def create_reservations_interface(root):
         search_button.config(state="disabled")
         new_button.config(state="disabled")
         edit_button.config(state="disabled")
+
+    def on_cancel_reservation():
+        clear_reservation_fields()
+        enable_reservation_buttons()
     
     # Función para habilitar botones y campos
     def enable_reservation_buttons():
@@ -579,8 +583,8 @@ def create_reservations_interface(root):
 
     # Segunda fila
     ttk.Label(reservations_frame, text="Reservación ID:").grid(row=1, column=0, sticky="e")
-    reservacion_id_entry = ttk.Entry(reservations_frame, textvariable=reservation_id_var, state="disabled")
-    reservacion_id_entry.grid(row=1, column=1, padx=5)
+    reservation_id_entry = ttk.Entry(reservations_frame, textvariable=reservation_id_var, state="disabled")
+    reservation_id_entry.grid(row=1, column=1, padx=5)
     reservations_frame.grid_columnconfigure(2, minsize=20)
     ttk.Label(reservations_frame, text="Fecha Reservación(MM/DD/YYYY):").grid(row=1, column=3, sticky="e")
     reservation_date_entry = ttk.Entry(reservations_frame, textvariable=reservation_date_entry_var)
@@ -624,6 +628,9 @@ def create_reservations_interface(root):
     
     edit_button = ttk.Button(button_frame, text="Editar", command=on_edit_reservation)
     edit_button.grid(row=0, column=3, padx=5)
+
+    cancel_attempt_button = ttk.Button(button_frame, text="Cancelar", command=on_cancel_reservation)
+    cancel_attempt_button.grid(row=0, column=4, padx=5)
 
     # Actualizar los ComboBox al crear la interfaz
     update_comboboxes()
